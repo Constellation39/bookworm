@@ -3,6 +3,8 @@ import path from 'path';
 import prompts from 'prompts';
 import Book from './Book';
 import { exists } from './exists';
+import InCaptcha from './Http/Captcha/InCaptcha';
+import WaitCaptcha from './Http/Captcha/WaitCaptcha';
 import HttpClient from './Http/Client';
 import Login from './Http/Requests/Login';
 import StartSession from './Http/Requests/StartSession';
@@ -14,6 +16,7 @@ const writeJson = <T>(filename: string, content: T) => fs.writeFile(filename, JS
 const AUTH_DATA_PATH = './auth.json';
 const BROWSER_ID_PATH = './browser-id.txt';
 const STORAGE_PATH = './storage';
+const CAPTCHA_KEY = './2captcha-key.txt';
 
 async function main() {
     const httpClient = new HttpClient();
@@ -54,9 +57,23 @@ async function main() {
         }
     }
 
+    logger.debug(`Input username: ${username} password: ${password}`);
     logger.info(`Auth is detected: ${username}`);
-    await new StartSession().execute(httpClient);
-    if (!(await new Login(username, password).execute(httpClient))) {
+    let body: { [x: string]: string } = { 'loginBtn': 'login' };
+    const reCaptchaCode = await new StartSession().execute(httpClient);
+    if (reCaptchaCode) {
+        logger.info('Server has reCaptcha enabled, Login takes more time');
+        const captchaKey = await fs.readFile(CAPTCHA_KEY, 'utf8').catch(() => null);
+        if (captchaKey == null) {
+            throw new Error('Server has reCaptcha enabled, but captchaKey not found');
+        }
+        const waitKey = await new InCaptcha(captchaKey, reCaptchaCode).execute(httpClient);
+        logger.debug(`InCaptcha ${waitKey}`);
+        const captcha = await new WaitCaptcha(captchaKey, waitKey).execute(httpClient);
+        logger.debug(`WaitCaptcha ${captcha}`);
+        body = { 'g-recaptcha-response': captcha };
+    }
+    if (!(await new Login(username, password, body).execute(httpClient))) {
         throw new Error('Incorrect username/password');
     }
     logger.info('Session started');
@@ -97,6 +114,11 @@ async function main() {
 }
 
 main().catch(logger.error);
+
+
+export function sleep(time = 0) {
+    return new Promise(resolve => setTimeout(resolve, time));
+}
 
 interface IAuthData {
     username: string;

@@ -21,6 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "canvas": "^2.6.0",
+    "cheerio": "^1.0.0-rc.6",
     "prompts": "^2.4.1",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.8",
@@ -53,7 +54,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm run lint:tslint && npm run lint:prettier && npm test"
+      "pre-commit": "npm run lint:tslint"
     }
   },
   "config": {
