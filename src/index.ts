@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import readlineSync from 'readline-sync';
+import prompts from 'prompts';
 import Book from './Book';
 import { exists } from './exists';
 import HttpClient from './Http/Client';
@@ -33,8 +33,23 @@ async function main() {
             username = auth.username;
             password = auth.password;
         } else {
-            username = readlineSync.question('Username: ');
-            password = readlineSync.question('Password: ', { hideEchoBack: true });
+            const pAuth = await prompts([
+                {
+                    message: 'Username: ',
+                    name: 'username',
+                    type: 'text',
+                    validate: data => (data !== '' ? true : 'Username input is empty'),
+                },
+                {
+                    message: 'Password: ',
+                    name: 'password',
+                    type: 'password',
+                    validate: data => (data !== '' ? true : 'Password input is empty'),
+                },
+            ]);
+
+            username = pAuth.username;
+            password = pAuth.password;
         }
     }
 
@@ -55,7 +70,20 @@ async function main() {
             });
     }
 
-    const contentId = process.env.BW_CONTENT_ID || readlineSync.question('Content ID: ');
+    let contentId: string;
+
+    if (process.env.BW_CONTENT_ID) {
+        contentId = process.env.BW_CONTENT_ID;
+    } else {
+        const { id } = await prompts({
+            message: 'Content ID: ',
+            name: 'id',
+            type: 'text',
+            validate: data => (data && data.match(/(\w+-){4}\w+/g) ? true : 'Link Error'),
+        });
+        contentId = id;
+    }
+
     const book = await Book.load(contentId, httpClient);
     console.log('Book loaded');
 
@@ -67,7 +95,7 @@ async function main() {
     await fs.writeFile(BROWSER_ID_PATH, httpClient.browserId);
 }
 
-main();
+main().catch(console.error);
 
 interface IAuthData {
     username: string;

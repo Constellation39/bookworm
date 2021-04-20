@@ -21,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "canvas": "^2.6.0",
-    "readline-sync": "^1.4.10",
+    "prompts": "^2.4.1",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.8"
   },
@@ -30,7 +30,7 @@
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.12.14",
     "@types/prettier": "^1.19.0",
-    "@types/readline-sync": "^1.4.3",
+    "@types/prompts": "^2.0.10",
     "@types/request-promise-native": "^1.0.17",
     "chai": "^4.2.0",
     "cz-conventional-changelog": "^3.3.0",
