@@ -23,7 +23,8 @@
     "canvas": "^2.6.0",
     "prompts": "^2.4.1",
     "request": "^2.88.0",
-    "request-promise-native": "^1.0.8"
+    "request-promise-native": "^1.0.8",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "@types/chai": "^4.2.5",
