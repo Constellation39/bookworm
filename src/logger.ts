@@ -6,7 +6,7 @@ const { timestamp, combine, errors, splat, simple, printf } = format;
 const logger = createLogger({
     transports: [
         new transports.Console({
-            level: 'silly',
+            level: 'verbose',
         }),
         new transports.File({
             dirname: join(process.cwd(), 'log'),

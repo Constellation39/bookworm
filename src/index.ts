@@ -6,6 +6,7 @@ import { exists } from './exists';
 import HttpClient from './Http/Client';
 import Login from './Http/Requests/Login';
 import StartSession from './Http/Requests/StartSession';
+import logger from './logger';
 
 const readJson = <T>(filename: string): Promise<T> => fs.readFile(filename, 'utf8').then(json => JSON.parse(json));
 const writeJson = <T>(filename: string, content: T) => fs.writeFile(filename, JSON.stringify(content, null, 2));
@@ -18,7 +19,7 @@ async function main() {
     const httpClient = new HttpClient();
     const browserId = process.env.BW_BROWSER_ID || (await fs.readFile(BROWSER_ID_PATH, 'utf8').catch(() => null));
     if (browserId) {
-        console.log(`Browser ID is detected: ${browserId}`);
+        logger.debug(`Browser ID is detected: ${browserId}`);
         httpClient.browserId = browserId;
     }
 
@@ -53,20 +54,20 @@ async function main() {
         }
     }
 
-    console.log(`Auth is detected: ${username}`);
+    logger.info(`Auth is detected: ${username}`);
     await new StartSession().execute(httpClient);
     if (!(await new Login(username, password).execute(httpClient))) {
         throw new Error('Incorrect username/password');
     }
-    console.log('Session started');
+    logger.info('Session started');
 
     if (process.env.BW_DONT_SAVE_AUTH !== '1') {
         writeJson<IAuthData>(AUTH_DATA_PATH, { username, password })
             .then(() => {
-                console.log(`Auth data saved to ${AUTH_DATA_PATH}`);
+                logger.info(`Auth data saved to ${AUTH_DATA_PATH}`);
             })
             .catch(err => {
-                console.warn(`Failed to save auth data to ${AUTH_DATA_PATH}:`, err.stack);
+                logger.warning(`Failed to save auth data to ${AUTH_DATA_PATH}:`, err.stack);
             });
     }
 
@@ -85,17 +86,17 @@ async function main() {
     }
 
     const book = await Book.load(contentId, httpClient);
-    console.log('Book loaded');
+    logger.info('Book loaded');
 
     const target = path.join(STORAGE_PATH, contentId);
     if (!(await exists(target))) await fs.mkdir(target);
     await book.download(target);
-    console.log('Done!');
+    logger.info('Done!');
 
     await fs.writeFile(BROWSER_ID_PATH, httpClient.browserId);
 }
 
-main().catch(console.error);
+main().catch(logger.error);
 
 interface IAuthData {
     username: string;

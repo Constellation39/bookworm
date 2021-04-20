@@ -11,6 +11,7 @@ import AuthorizeViewer from './Http/Requests/AuthorizeViewer';
 import BookConfig from './Http/Requests/BookConfig';
 import ContentCheck from './Http/Requests/ContentCheck';
 import PutBookmark from './Http/Requests/PutBookmark';
+import logger from './logger';
 import Page from './Page';
 
 export default class Book {
@@ -71,7 +72,7 @@ export default class Book {
             };
         });
 
-        console.log('Downloading:');
+        logger.info('Downloading:');
         let ready = 0;
         const total = items.length.toString();
         for (const item of items) {
@@ -81,12 +82,12 @@ export default class Book {
             const logPrefix = `\t[${readyStr}/${total}] ${filename}:`;
 
             if (await exists(filepath)) {
-                console.log(logPrefix, `File already exists`);
+                logger.info(logPrefix, `File already exists`);
             } else {
                 try {
                     const image = await item.page.image(this.auth);
                     await fs.writeFile(filepath, image);
-                    console.log(logPrefix, `Success`);
+                    logger.info(logPrefix, `Success`);
 
                     if (item.nextPage) {
                         const pb = new PutBookmark(this.auth, this.contentId, item.page.pageId, item.nextPage.pageId);
