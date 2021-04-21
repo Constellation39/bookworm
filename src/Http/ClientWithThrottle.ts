@@ -9,7 +9,8 @@ export default class ClientWithThrottle implements IHttpClient {
     public constructor(
         private readonly httpClient: IHttpClient,
         private readonly options: IClientWithThrottleOptions,
-    ) {}
+    ) {
+    }
 
     public get browserId() {
         return this.httpClient.browserId;
@@ -36,8 +37,8 @@ export default class ClientWithThrottle implements IHttpClient {
         });
     }
 
-    public getU1(): string {
-        return this.httpClient.getU1();
+    public getU1(hostname: string): string {
+        return this.httpClient.getU1(hostname);
     }
 
     private async tick() {

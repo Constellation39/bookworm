@@ -4,5 +4,5 @@ export default interface IHttpClient {
     browserId: string;
 
     execute<T = any>(options: Options): Promise<T>;
-    getU1(): string;
+    getU1(hostname: string): string;
 }

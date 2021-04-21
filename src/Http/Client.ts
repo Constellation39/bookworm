@@ -36,14 +36,12 @@ export default class Client implements IHttpClient {
         return this.httpClient(options).promise();
     }
 
-    public getU1(): string {
+    public getU1(hostname: string): string {
         const u1 = this.jar
-            .getCookieString('https://viewer.bookwalker.jp')
+            .getCookieString(hostname)
             .split('; ')
             .find((cookie: string) => cookie.startsWith('u1='));
-
         if (!u1) throw new Error('u1 cookie not found in jar');
-
         return u1.substr(3);
     }
 

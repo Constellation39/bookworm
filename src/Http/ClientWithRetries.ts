@@ -5,7 +5,8 @@ import IHttpClient from './IHttpClient';
 const sleep = (d: number) => new Promise(r => setTimeout(r, d));
 
 export default class ClientWithRetries implements IHttpClient {
-    public constructor(private readonly httpClient: IHttpClient, private readonly options: IClientWithRetriesOptions) {}
+    public constructor(private readonly httpClient: IHttpClient, private readonly options: IClientWithRetriesOptions) {
+    }
 
     public get browserId() {
         return this.httpClient.browserId;
@@ -26,8 +27,8 @@ export default class ClientWithRetries implements IHttpClient {
         }
     }
 
-    public getU1(): string {
-        return this.httpClient.getU1();
+    public getU1(hostname: string): string {
+        return this.httpClient.getU1(hostname);
     }
 }
 

@@ -1,22 +1,27 @@
 import IContentAuth from '../IContentAuth';
 import IHttpClient from '../IHttpClient';
 import IHttpRequest from '../IHttpRequest';
+import { IGlobalConfig } from './GetConfig';
 
 export default class PutBookmark implements IHttpRequest<IContentAuth> {
     constructor(
+        private readonly config: IGlobalConfig,
         private readonly auth: IContentAuth,
         private readonly contentId: string,
         private readonly pageId: string,
         private readonly nextPageId: string,
-    ) {}
+    ) {
+    }
 
     public async execute(client: IHttpClient): Promise<IContentAuth> {
+        const url = new URL(this.config.SERVER_DOMAIN);
+
         const response = await client.execute({
-            url: 'https://viewer.bookwalker.jp/browserWebApi/pb',
+            url: this.config.SERVER_DOMAIN + this.config.WEBAPI_PUT_BOOKMARK,
             method: 'POST',
             form: {
                 cid: this.contentId,
-                u1: client.getU1(),
+                u1: client.getU1(url.origin),
                 BID: client.browserId,
                 timestamp: this.getTimestamp(),
                 bookmark: JSON.stringify({
@@ -31,7 +36,7 @@ export default class PutBookmark implements IHttpRequest<IContentAuth> {
                 }),
             },
             headers: {
-                Referer: `https://viewer.bookwalker.jp/03/9/viewer.html?cid=${this.contentId}&cty=1`,
+                Referer: `${url.origin}/03/9/viewer.html?cid=${this.contentId}&cty=1`,
             },
             followRedirect: false,
             resolveWithFullResponse: true,

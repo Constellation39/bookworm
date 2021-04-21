@@ -27,14 +27,11 @@ export default class WaitCaptcha implements IHttpRequest<string> {
             });
             if (status === 1) {
                 return request;
-            } else if (status === 0) {
-                if (stop) {
-                    throw new Error('Waiting for https://2captcha.com/res.php response timeout');
-                }
-                await sleep(2000);
-            } else {
-                throw new Error(`WaitCaptcha response status: ${status}`);
             }
+            if (stop) {
+                throw new Error('Waiting for https://2captcha.com/res.php response timeout');
+            }
+            await sleep(2000);
         }
     }
 }

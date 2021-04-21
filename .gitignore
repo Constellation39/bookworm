@@ -8,4 +8,5 @@ browser-id.txt
 auth.json
 cookies.json
 2captcha-key.txt
+log
 src/__fixtures__/non-even-image.json

@@ -1,21 +1,22 @@
 import IHttpClient from '../IHttpClient';
 import IHttpRequest from '../IHttpRequest';
 
-export default class AuthorizeViewer implements IHttpRequest<void> {
-    public static readonly READER_TYPE = 'BROWSER_VIEWER';
+export default class AuthorizeViewer implements IHttpRequest<string> {
     public static readonly REFERER = 'https://global.bookwalker.jp/holdBooks/';
 
-    public constructor(private readonly contentId: string) {}
+    public constructor(private readonly link: string) {
+    }
 
-    public execute(client: IHttpClient): Promise<void> {
+
+    public execute(client: IHttpClient): Promise<string> {
         return client.execute({
-            url: 'https://member.bookwalker.jp/app/03/webstore/cooperation',
-            qs: {
-                r: [AuthorizeViewer.READER_TYPE, this.contentId, encodeURIComponent(AuthorizeViewer.REFERER)].join('/'),
-            },
+            url: this.link,
             headers: {
                 Referer: AuthorizeViewer.REFERER,
             },
+            resolveWithFullResponse: true,
+        }).then(response => {
+            return response.request.href;
         });
     }
 }

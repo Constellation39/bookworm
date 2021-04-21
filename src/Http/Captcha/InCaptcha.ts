@@ -18,10 +18,7 @@ export default class InCaptcha implements IHttpRequest<string> {
                 json: 1,
             },
             json: true,
-        }).then(({ status, request }: { status: number, request: string }) => {
-            if (status !== 200) {
-                throw new Error(`InCaptcha response status: ${status}`);
-            }
+        }).then(({ request }: { status: number, request: string }) => {
             return request;
         });
     }

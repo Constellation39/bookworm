@@ -79,7 +79,7 @@ async function main() {
     logger.info('Session started');
 
     if (process.env.BW_DONT_SAVE_AUTH !== '1') {
-        writeJson<IAuthData>(AUTH_DATA_PATH, { username, password })
+        await writeJson<IAuthData>(AUTH_DATA_PATH, { username, password })
             .then(() => {
                 logger.info(`Auth data saved to ${AUTH_DATA_PATH}`);
             })
@@ -88,32 +88,34 @@ async function main() {
             });
     }
 
-    let contentId: string;
+    let link: string;
 
-    if (process.env.BW_CONTENT_ID) {
-        contentId = process.env.BW_CONTENT_ID;
+    if (process.env.BW_LINK) {
+        link = process.env.BW_LINK;
     } else {
-        const { id } = await prompts({
-            message: 'Content ID: ',
-            name: 'id',
+        const value = await prompts({
+            message: 'Bookwalker Link: ',
+            name: 'link',
             type: 'text',
             validate: data => (data && data.match(/(\w+-){4}\w+/g) ? true : 'Link Error'),
         });
-        contentId = id;
+        link = value.link;
     }
 
-    const book = await Book.load(contentId, httpClient);
+    const book = await Book.load(link, httpClient);
     logger.info('Book loaded');
 
-    const target = path.join(STORAGE_PATH, contentId);
-    if (!(await exists(target))) await fs.mkdir(target);
-    await book.download(target);
+
+    await book.download(STORAGE_PATH);
     logger.info('Done!');
 
     await fs.writeFile(BROWSER_ID_PATH, httpClient.browserId);
 }
 
-main().catch(logger.error);
+main().catch(error => {
+    logger.error(error);
+    process.exit();
+});
 
 
 export function sleep(time = 0) {
