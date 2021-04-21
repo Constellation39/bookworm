@@ -1,8 +1,6 @@
 import { promises as fs } from 'fs';
-import path from 'path';
 import prompts from 'prompts';
 import Book from './Book';
-import { exists } from './exists';
 import InCaptcha from './Http/Captcha/InCaptcha';
 import WaitCaptcha from './Http/Captcha/WaitCaptcha';
 import HttpClient from './Http/Client';
@@ -26,34 +24,20 @@ async function main() {
         httpClient.browserId = browserId;
     }
 
+    const auth = await readJson<IAuthData[]>(AUTH_DATA_PATH).catch(() => null) || [];
     let username, password;
     if (process.env.BW_USERNAME && process.env.BW_PASSWORD) {
         username = process.env.BW_USERNAME;
         password = process.env.BW_PASSWORD;
     } else {
-        const auth = await readJson<IAuthData>(AUTH_DATA_PATH).catch(() => null);
-
-        if (auth && auth.username && auth.password) {
-            username = auth.username;
-            password = auth.password;
+        if (!auth || auth && auth.length === 0) {
+            auth[0] = await readUser();
+            username = auth[0].username;
+            password = auth[0].password;
         } else {
-            const pAuth = await prompts([
-                {
-                    message: 'Username: ',
-                    name: 'username',
-                    type: 'text',
-                    validate: data => (data !== '' ? true : 'Username input is empty'),
-                },
-                {
-                    message: 'Password: ',
-                    name: 'password',
-                    type: 'password',
-                    validate: data => (data !== '' ? true : 'Password input is empty'),
-                },
-            ]);
-
-            username = pAuth.username;
-            password = pAuth.password;
+            const data = await selectUser(auth);
+            username = data.username;
+            password = data.password;
         }
     }
 
@@ -117,6 +101,52 @@ main().catch(error => {
     process.exit();
 });
 
+async function selectUser(auth: IAuthData[]): Promise<IAuthData> {
+
+    if (!('map' in auth)) {
+        throw new Error(`The auth.json file is in the wrong format, please delete the file`);
+    }
+
+    const userProxy = new Map<string, string>();
+
+    const userMap = auth.map(a => {
+        userProxy.set(a.username, a.password);
+        return { title: a.username, value: a.username };
+    });
+
+    const { user } = await prompts({
+        type: 'select',
+        name: 'user',
+        message: 'Pick a User',
+        choices: userMap.concat({ title: 'add User', value: 'addUser' }),
+        initial: 0,
+    });
+
+    if (user === 'addUser') {
+        const data = await readUser();
+        auth[auth.length] = { username: data.username, password: data.password };
+        return { username: data.username, password: data.password };
+    }
+
+    return { username: user, password: userProxy.get(user) as string };
+}
+
+async function readUser(): Promise<IAuthData> {
+    return await prompts([
+        {
+            message: 'Username: ',
+            name: 'username',
+            type: 'text',
+            validate: data => (data !== '' ? true : 'Username input is empty'),
+        },
+        {
+            message: 'Password: ',
+            name: 'password',
+            type: 'password',
+            validate: data => (data !== '' ? true : 'Password input is empty'),
+        },
+    ]);
+}
 
 export function sleep(time = 0) {
     return new Promise(resolve => setTimeout(resolve, time));
