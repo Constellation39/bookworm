@@ -90,4 +90,8 @@ export interface IConfigBookConfiguration {
         file: string;
         index: number;
     }>;
+    'toc-list': Array<{
+        href: string;
+        label: string;
+    }>;
 }

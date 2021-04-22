@@ -14,6 +14,7 @@ import GetAuthorize from './Http/Requests/GetAuthorize';
 import GetConfig, { IGlobalConfig } from './Http/Requests/GetConfig';
 import GetLoader from './Http/Requests/GetLoader';
 import PutBookmark from './Http/Requests/PutBookmark';
+import { sleep } from './index';
 import logger from './logger';
 import Page from './Page';
 
@@ -52,6 +53,7 @@ export default class Book {
         return new Book(config, contentId, httpClient, contentConfig, encodedBookConfig);
     }
 
+    public readonly tableOfContents: ITableOfContents[];
     public readonly pages: ReadonlyArray<Page>;
     private readonly throttledHttpClient: IHttpClient;
     private auth: IContentAuth;
@@ -72,6 +74,21 @@ export default class Book {
         );
         const config = new Config(encodedBookConfig, BookConfig.FILENAME).decode();
         const configuration: IConfigBookConfiguration = config[0].configuration as any;
+        {
+            let index = 0;
+            this.tableOfContents = configuration['toc-list'].map(toc => {
+                for (; toc.href !== configuration.contents[index].file; index++) ;
+                return { start: 0, end: configuration.contents[index].index, label: toc.label };
+            }).map((table, i, tableOfContents) => {
+                if (i === 0) {
+                    return { start: 0, end: table.end, label: table.label };
+                } else if (i === tableOfContents.length - 1) {
+                    return { start: table.end, end: configuration.contents.length, label: table.label };
+                } else {
+                    return { start: table.end, end: tableOfContents[i + 1].end, label: table.label };
+                }
+            });
+        }
         this.pages = configuration.contents.map(pageInfo => {
             const pageConfig = config[0][pageInfo.file];
             return new Page(
@@ -88,10 +105,11 @@ export default class Book {
         this.auth = contentConfig.auth_info;
     }
 
-    public async download(folder: string) {
-        folder = path.join(folder, this.contentConfig.cti);
-        if (!(await exists(folder))) await fs.mkdir(folder);
-        const items = this.pages.map((page, index) => {
+    public async download(folder: string, table: ITableOfContents) {
+        folder = path.join(folder, this.contentConfig.cti, table.label);
+        if (!(await exists(folder))) await fs.mkdir(folder, { recursive: true });
+
+        const items = this.pages.slice(table.start, table.end).map((page, index) => {
             const nextPage = this.pages[index + 1];
 
             return {
@@ -100,35 +118,52 @@ export default class Book {
             };
         });
 
-        logger.info('Downloading:');
+        logger.info(`Downloading(${folder}):`);
         let ready = 0;
         const total = items.length.toString();
         for (const item of items) {
             const readyStr = (++ready).toString().padStart(total.length, '0');
-            const filename = `page-${readyStr}.png`;
+            const filename = `${readyStr.toString()}.png`;
             const filepath = path.join(folder, filename);
             const logPrefix = `\t[${readyStr}/${total}] ${filename}:`;
+            let i = 0;
+            // tslint:disable-next-line: no-constant-condition
+            while (true) {
+                if (await exists(filepath)) {
+                    logger.info(`${logPrefix} File already exists`);
+                    break;
+                } else {
+                    try {
+                        const image = await item.page.image(this.auth);
+                        await fs.writeFile(filepath, image);
+                        logger.info(`${logPrefix} Success`);
 
-            if (await exists(filepath)) {
-                logger.info(logPrefix, `File already exists`);
-            } else {
-                try {
-                    const image = await item.page.image(this.auth);
-                    await fs.writeFile(filepath, image);
-                    logger.info(`${logPrefix} Success`);
-
-                    if (item.nextPage) {
-                        const pb = new PutBookmark(this.iConfig, this.auth, this.contentId, item.page.pageId, item.nextPage.pageId);
-                        const auth = await pb.execute(this.httpClient);
-                        this.auth = {
-                            ...this.auth,
-                            ...auth,
-                        };
+                        if (item.nextPage) {
+                            const pb = new PutBookmark(this.iConfig, this.auth, this.contentId, item.page.pageId, item.nextPage.pageId);
+                            const auth = await pb.execute(this.httpClient);
+                            this.auth = {
+                                ...this.auth,
+                                ...auth,
+                            };
+                        }
+                        break;
+                    } catch (err) {
+                        if (i++ < 3) {
+                            logger.info(`${logPrefix} Failed, Retry`);
+                            await sleep(3 * 1000);
+                            continue;
+                        }
+                        logger.warning(`${logPrefix} Failed %s`, err.stack);
+                        break;
                     }
-                } catch (err) {
-                    console.warn(`${logPrefix} Failed %s`, err.stack);
                 }
             }
         }
     }
+}
+
+interface ITableOfContents {
+    start: number;
+    end: number;
+    label: string;
 }

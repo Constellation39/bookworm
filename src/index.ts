@@ -89,8 +89,20 @@ async function main() {
     const book = await Book.load(link, httpClient);
     logger.info('Book loaded');
 
+    const { tables } = await prompts({
+        type: 'multiselect',
+        name: 'tables',
+        message: 'select',
+        choices: book.tableOfContents.map(table => {
+            return { title: `${table.label}(${table.start}-${table.end})`, value: table };
+        }),
+        hint: '- Space to select. Return to submit',
+    });
 
-    await book.download(STORAGE_PATH);
+    for (const table of tables) {
+        await book.download(STORAGE_PATH, table);
+    }
+
     logger.info('Done!');
 
     await fs.writeFile(BROWSER_ID_PATH, httpClient.browserId);
