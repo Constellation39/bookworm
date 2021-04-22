@@ -63,7 +63,7 @@ async function main() {
     logger.info('Session started');
 
     if (process.env.BW_DONT_SAVE_AUTH !== '1') {
-        await writeJson<IAuthData>(AUTH_DATA_PATH, { username, password })
+        await writeJson<IAuthData[]>(AUTH_DATA_PATH, auth)
             .then(() => {
                 logger.info(`Auth data saved to ${AUTH_DATA_PATH}`);
             })
